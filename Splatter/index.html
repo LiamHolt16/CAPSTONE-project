@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gaussian Splatting Demo</title>
+    <link rel="stylesheet" href="./tailwind.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body class="bg-slate-900 text-slate-100">
+    <!-- ── Navigation ─────────────────────────────────────────────── -->
+    <header
+      class="sticky top-0 z-50 border-b border-slate-700 bg-slate-900/95 backdrop-blur"
+    >
+      <nav
+        class="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3"
+      >
+        <a href="#top" class="text-lg font-semibold tracking-tight text-white">
+          Splatter
+        </a>
+
+        <ul class="hidden items-center gap-6 text-sm font-medium md:flex">
+          <li>
+            <a href="#viewer" class="text-slate-400 transition hover:text-white"
+              >Explorer</a
+            >
+          </li>
+          <li>
+            <a href="#about" class="text-slate-400 transition hover:text-white"
+              >About</a
+            >
+          </li>
+          <li>
+            <a href="#how" class="text-slate-400 transition hover:text-white"
+              >How It Works</a
+            >
+          </li>
+          <li>
+            <a
+              href="#environments"
+              class="text-slate-400 transition hover:text-white"
+              >Environments</a
+            >
+          </li>
+        </ul>
+
+        <a
+          href="#viewer"
+          class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+          >Explore</a
+        >
+      </nav>
+    </header>
+
+    <main id="top">
+      <!-- ── Hero ───────────────────────────────────────────────────── -->
+      <section
+        class="flex min-h-screen flex-col items-center justify-center px-4 text-center"
+      >
+        <p
+          class="text-sm font-semibold uppercase tracking-widest text-indigo-400"
+        >
+          Interactive 3D Experience
+        </p>
+        <h1 class="mt-3 text-4xl font-bold text-white md:text-6xl">
+          Gaussian Splatting
+        </h1>
+        <p class="mt-4 max-w-xl text-slate-400">
+          Step inside photorealistic 3D environments captured with Gaussian
+          Splatting. Explore freely in your browser — or enter VR for full
+          immersion.
+        </p>
+        <div class="mt-8 flex gap-4">
+          <a
+            href="#viewer"
+            class="rounded-lg bg-indigo-600 px-5 py-3 font-semibold text-white transition hover:bg-indigo-500"
+            >Enter a Scene</a
+          >
+          <a
+            href="#about"
+            class="rounded-lg border border-slate-600 px-5 py-3 font-semibold text-slate-300 transition hover:border-slate-400 hover:text-white"
+            >Learn More</a
+          >
+        </div>
+      </section>
+
+      <!-- ── 3D Environment Viewer ──────────────────────────────────── -->
+      <section id="viewer" class="bg-slate-950 px-4 py-16">
+        <div class="mx-auto max-w-6xl">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-semibold text-white">
+                Environment Explorer
+              </h2>
+              <p id="viewer-scene-label" class="mt-1 text-slate-400">
+                No scene loaded — select one from the gallery below.
+              </p>
+            </div>
+            <p id="viewer-loading" class="hidden text-sm text-indigo-400">
+              Loading scene…
+            </p>
+          </div>
+
+          <!-- TODO: 3D viewer mounts here.
+               Replace this div with the viewer library canvas/component once 3D environment files are available. -->
+          <div
+            id="splat-viewer"
+            class="relative mt-6 flex h-125 w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-600 bg-slate-800"
+          >
+            <p class="text-slate-500">[ 3D viewer will mount here ]</p>
+
+            <!-- Fullscreen shortcut -->
+            <button
+              id="btn-fullscreen"
+              title="Fullscreen"
+              class="absolute right-3 top-3 rounded-md border border-slate-600 bg-slate-900/70 px-3 py-1.5 text-xs text-slate-300 backdrop-blur transition hover:bg-slate-700"
+            >
+              ⛶ Fullscreen
+            </button>
+          </div>
+
+          <!-- Viewer controls -->
+          <div
+            id="viewer-controls"
+            class="mt-4 flex flex-wrap items-center gap-3"
+          >
+            <button
+              id="btn-reset-cam"
+              class="rounded-md border border-slate-600 bg-slate-800 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-700"
+            >
+              Reset Camera
+            </button>
+            <button
+              id="btn-toggle-orbit"
+              class="rounded-md border border-slate-600 bg-slate-800 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-700"
+            >
+              Auto-Orbit
+            </button>
+
+            <span class="hidden h-6 w-px bg-slate-700 md:block"></span>
+
+            <!-- VR button — app.js enables this when WebXR is detected -->
+            <button
+              id="btn-enter-vr"
+              disabled
+              class="rounded-md border border-indigo-500 bg-indigo-600/20 px-4 py-2 text-sm font-semibold text-indigo-300 transition hover:bg-indigo-600/40 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              🥽 Enter VR
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── About ──────────────────────────────────────────────────── -->
+      <section id="about" class="px-4 py-16">
+        <div class="mx-auto max-w-4xl">
+          <h2 class="text-2xl font-semibold text-white">
+            What is Gaussian Splatting?
+          </h2>
+          <p class="mt-3 text-slate-400">
+            Gaussian Splatting represents a 3D scene as millions of tiny
+            anisotropic Gaussian blobs. Each splat carries position, scale,
+            rotation, opacity, and colour — producing photorealistic
+            environments that can be explored freely from any angle.
+          </p>
+          <p class="mt-3 text-slate-400">
+            The environments on this site are pregenerated offline and streamed
+            to your browser. Use a mouse or touch to navigate, or put on a VR
+            headset for a fully immersive walkthrough.
+          </p>
+        </div>
+      </section>
+
+      <!-- ── How It Works ───────────────────────────────────────────── -->
+      <section id="how" class="bg-slate-800 px-4 py-16">
+        <div class="mx-auto max-w-4xl">
+          <h2 class="text-2xl font-semibold text-white">How It Works</h2>
+          <ol class="mt-6 space-y-4">
+            <li class="flex gap-4">
+              <span
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white"
+                >1</span
+              >
+              <div>
+                <h3 class="font-semibold text-white">Capture</h3>
+                <p class="mt-1 text-slate-400">
+                  Photograph the scene from many angles.
+                </p>
+              </div>
+            </li>
+            <li class="flex gap-4">
+              <span
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white"
+                >2</span
+              >
+              <div>
+                <h3 class="font-semibold text-white">Initialize</h3>
+                <p class="mt-1 text-slate-400">
+                  Build a sparse point cloud via Structure-from-Motion.
+                </p>
+              </div>
+            </li>
+            <li class="flex gap-4">
+              <span
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white"
+                >3</span
+              >
+              <div>
+                <h3 class="font-semibold text-white">Optimize</h3>
+                <p class="mt-1 text-slate-400">
+                  Train splat parameters to match the captured images.
+                </p>
+              </div>
+            </li>
+            <li class="flex gap-4">
+              <span
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white"
+                >4</span
+              >
+              <div>
+                <h3 class="font-semibold text-white">Render</h3>
+                <p class="mt-1 text-slate-400">
+                  Rasterize splats in real time from any viewpoint.
+                </p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ── Environments ──────────────────────────────────────────── -->
+      <section id="environments" class="px-4 py-16">
+        <div class="mx-auto max-w-6xl">
+          <h2 class="text-2xl font-semibold text-white">Environments</h2>
+          <p class="mt-1 text-slate-400">
+            Choose a pregenerated scene to explore in the viewer above.
+          </p>
+
+          <!-- TODO: Populate data-scene with the real scene file paths/IDs
+               and swap the thumbnail placeholders for actual preview images -->
+          <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div
+              class="overflow-hidden rounded-xl border border-slate-700 bg-slate-800"
+            >
+              <div class="flex h-36 items-center justify-center bg-slate-700">
+                <!-- TODO: add a scene thumbnail -->
+                <p class="text-slate-500">[ Thumbnail ]</p>
+              </div>
+              <div class="p-4">
+                <h3 class="font-semibold text-white">Scene 1</h3>
+                <p class="mt-1 text-sm text-slate-400">
+                  Scene description goes here.
+                </p>
+                <button
+                  class="btn-load-scene mt-3 w-full rounded-md bg-indigo-600 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                  data-scene="scene-1"
+                >
+                  Load Scene
+                </button>
+              </div>
+            </div>
+
+            <div
+              class="overflow-hidden rounded-xl border border-slate-700 bg-slate-800"
+            >
+              <div class="flex h-36 items-center justify-center bg-slate-700">
+                <!-- TODO: add a scene thumbnail  -->
+                <p class="text-slate-500">[ Thumbnail ]</p>
+              </div>
+              <div class="p-4">
+                <h3 class="font-semibold text-white">Scene 2</h3>
+                <p class="mt-1 text-sm text-slate-400">
+                  Scene description goes here.
+                </p>
+                <button
+                  class="btn-load-scene mt-3 w-full rounded-md bg-indigo-600 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                  data-scene="scene-2"
+                >
+                  Load Scene
+                </button>
+              </div>
+            </div>
+
+            <div
+              class="overflow-hidden rounded-xl border border-slate-700 bg-slate-800"
+            >
+              <div class="flex h-36 items-center justify-center bg-slate-700">
+                <!-- TODO: add a scene thumbnail -->
+                <p class="text-slate-500">[ Thumbnail ]</p>
+              </div>
+              <div class="p-4">
+                <h3 class="font-semibold text-white">Scene 3</h3>
+                <p class="mt-1 text-sm text-slate-400">
+                  Scene description goes here.
+                </p>
+                <button
+                  class="btn-load-scene mt-3 w-full rounded-md bg-indigo-600 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                  data-scene="scene-3"
+                >
+                  Load Scene
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ── Footer ─────────────────────────────────────────────────── -->
+    <footer
+      class="border-t border-slate-700 bg-slate-900 px-4 py-6 text-center text-sm text-slate-500"
+    >
+      Gaussian Splatting Demo &mdash; Capstone Project
+    </footer>
+  </body>
+</html>
