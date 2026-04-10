@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gaussian Splatting Demo</title>
     <link rel="stylesheet" href="./tailwind.css" />
+    <link rel="stylesheet" href="./cesium/Widgets/widgets.css" />
+    <script>
+      window.CESIUM_BASE_URL = './cesium/';
+    </script>
+    <script src="./cesium/Cesium.js" defer></script>
     <script src="./app.js" defer></script>
   </head>
   <body class="bg-slate-900 text-slate-100">
@@ -107,7 +112,9 @@
             id="splat-viewer"
             class="relative mt-6 flex h-125 w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-600 bg-slate-800"
           >
-            <p class="text-slate-500">[ 3D viewer will mount here ]</p>
+            <p id="viewer-empty-state" class="text-slate-500">
+              Initializing Cesium viewer...
+            </p>
 
             <!-- Fullscreen shortcut -->
             <button
