@@ -195,8 +195,6 @@ function applyCameraFromConfig(config) {
 function applyVRSpawnOffset(config) {
   if (!config?.vrSpawnPos) return;
 
-  // In immersive WebXR, headset tracking overrides camera transform each frame.
-  // To change where the user starts, offset the XR reference space itself.
   const baseRefSpace = renderer.xr.getReferenceSpace();
   if (!baseRefSpace) return;
 
