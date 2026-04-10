@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gaussian Splatting Demo</title>
     <link rel="stylesheet" href="./tailwind.css" />
-    <link rel="stylesheet" href="./cesium/Widgets/widgets.css" />
-    <script>
-      window.CESIUM_BASE_URL = './cesium/';
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./node_modules/three/build/three.module.js",
+          "three/addons/": "./node_modules/three/examples/jsm/"
+        }
+      }
     </script>
-    <script src="./cesium/Cesium.js" defer></script>
-    <script src="./app.js" defer></script>
+    <script type="module" src="./app.js"></script>
   </head>
   <body class="bg-slate-900 text-slate-100">
     <!-- ── Navigation ─────────────────────────────────────────────── -->
@@ -98,7 +101,7 @@
                 Environment Explorer
               </h2>
               <p id="viewer-scene-label" class="mt-1 text-slate-400">
-                No scene loaded — select one from the gallery below.
+                Loading Littlest Tokyo…
               </p>
             </div>
             <p id="viewer-loading" class="hidden text-sm text-indigo-400">
@@ -106,14 +109,12 @@
             </p>
           </div>
 
-          <!-- TODO: 3D viewer mounts here.
-               Replace this div with the viewer library canvas/component once 3D environment files are available. -->
           <div
             id="splat-viewer"
             class="relative mt-6 flex h-125 w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-600 bg-slate-800"
           >
             <p id="viewer-empty-state" class="text-slate-500">
-              Initializing Cesium viewer...
+              Initializing viewer…
             </p>
 
             <!-- Fullscreen shortcut -->
@@ -240,71 +241,26 @@
         <div class="mx-auto max-w-6xl">
           <h2 class="text-2xl font-semibold text-white">Environments</h2>
           <p class="mt-1 text-slate-400">
-            Choose a pregenerated scene to explore in the viewer above.
+            Current loaded scene for this demo.
           </p>
 
-          <!-- TODO: Populate data-scene with the real scene file paths/IDs
-               and swap the thumbnail placeholders for actual preview images -->
           <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div
               class="overflow-hidden rounded-xl border border-slate-700 bg-slate-800"
             >
               <div class="flex h-36 items-center justify-center bg-slate-700">
-                <!-- TODO: add a scene thumbnail -->
-                <p class="text-slate-500">[ Thumbnail ]</p>
+                <p class="text-slate-300">Littlest Tokyo</p>
               </div>
               <div class="p-4">
-                <h3 class="font-semibold text-white">Scene 1</h3>
+                <h3 class="font-semibold text-white">Littlest Tokyo</h3>
                 <p class="mt-1 text-sm text-slate-400">
-                  Scene description goes here.
+                  Three.js animated city scene with DRACO compression.
                 </p>
                 <button
                   class="btn-load-scene mt-3 w-full rounded-md bg-indigo-600 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
                   data-scene="scene-1"
                 >
-                  Load Scene
-                </button>
-              </div>
-            </div>
-
-            <div
-              class="overflow-hidden rounded-xl border border-slate-700 bg-slate-800"
-            >
-              <div class="flex h-36 items-center justify-center bg-slate-700">
-                <!-- TODO: add a scene thumbnail  -->
-                <p class="text-slate-500">[ Thumbnail ]</p>
-              </div>
-              <div class="p-4">
-                <h3 class="font-semibold text-white">Scene 2</h3>
-                <p class="mt-1 text-sm text-slate-400">
-                  Scene description goes here.
-                </p>
-                <button
-                  class="btn-load-scene mt-3 w-full rounded-md bg-indigo-600 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
-                  data-scene="scene-2"
-                >
-                  Load Scene
-                </button>
-              </div>
-            </div>
-
-            <div
-              class="overflow-hidden rounded-xl border border-slate-700 bg-slate-800"
-            >
-              <div class="flex h-36 items-center justify-center bg-slate-700">
-                <!-- TODO: add a scene thumbnail -->
-                <p class="text-slate-500">[ Thumbnail ]</p>
-              </div>
-              <div class="p-4">
-                <h3 class="font-semibold text-white">Scene 3</h3>
-                <p class="mt-1 text-sm text-slate-400">
-                  Scene description goes here.
-                </p>
-                <button
-                  class="btn-load-scene mt-3 w-full rounded-md bg-indigo-600 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
-                  data-scene="scene-3"
-                >
-                  Load Scene
+                  Reload Scene
                 </button>
               </div>
             </div>
