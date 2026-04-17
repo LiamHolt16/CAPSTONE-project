@@ -9,7 +9,8 @@
       {
         "imports": {
           "three": "./node_modules/three/build/three.module.js",
-          "three/addons/": "./node_modules/three/examples/jsm/"
+          "three/addons/": "./node_modules/three/examples/jsm/",
+          "@mkkellogg/gaussian-splats-3d": "./node_modules/@mkkellogg/gaussian-splats-3d/build/gaussian-splats-3d.module.js"
         }
       }
     </script>
@@ -240,9 +241,7 @@
       <section id="environments" class="px-4 py-16">
         <div class="mx-auto max-w-6xl">
           <h2 class="text-2xl font-semibold text-white">Environments</h2>
-          <p class="mt-1 text-slate-400">
-            Current loaded scene for this demo.
-          </p>
+          <p class="mt-1 text-slate-400">Current loaded scene for this demo.</p>
 
           <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div
@@ -260,7 +259,28 @@
                   class="btn-load-scene mt-3 w-full rounded-md bg-indigo-600 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
                   data-scene="scene-1"
                 >
-                  Reload Scene
+                  Load Scene
+                </button>
+              </div>
+            </div>
+
+            <div
+              class="overflow-hidden rounded-xl border border-slate-700 bg-slate-800"
+            >
+              <div class="flex h-36 items-center justify-center bg-slate-700">
+                <p class="text-slate-300">Tape Measure</p>
+              </div>
+              <div class="p-4">
+                <h3 class="font-semibold text-white">Tape Measure (KSPLAT)</h3>
+                <p class="mt-1 text-sm text-slate-400">
+                  Optimized Gaussian splat scene loaded from a local .ksplat
+                  file.
+                </p>
+                <button
+                  class="btn-load-scene mt-3 w-full rounded-md bg-indigo-600 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                  data-scene="scene-2"
+                >
+                  Load Scene
                 </button>
               </div>
             </div>

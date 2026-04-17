@@ -1,11 +1,18 @@
 ## What you need
 
 - [Node.js](https://nodejs.org/)
-- npm (comes with Node.js)
+- npm
 
-## Run the project (basic)
+## Project overview
 
-1. Open a terminal in the Splatter folder.
+This project is a browser-based Three.js viewer with two switchable scenes:
+
+- Littlest Tokyo loaded from the official Three.js example asset
+- A local Gaussian splat scene loaded from `models/tape_measure.ksplat`
+
+## Run the project
+
+1. Open a terminal in the `Splatter` folder.
 2. Install dependencies:
 
 ```bash
@@ -18,36 +25,28 @@ npm install
 npx @tailwindcss/cli -i ./styles.css -o ./tailwind.css
 ```
 
-4. Open `index.html` in your browser.
+4. Serve the folder from a local web server.
 
-## Alternative: VS Code Live Server
+You should not open `index.html` directly from the filesystem because the app loads ES modules and fetches local assets.
 
-If you prefer, you can run it with the Live Server extension instead of opening the file directly.
+## Quick local server options
 
-1. Install extension: **Live Server** (by Ritwick Dey).
-2. In VS Code Explorer, right-click `index.html`.
-3. Click **Open with Live Server**.
-4. Keep using the same Tailwind build command when styles change:
+### VS Code Live Server
 
-```bash
-npx @tailwindcss/cli -i ./styles.css -o ./tailwind.css
-```
+1. Install **Live Server**.
+2. Right-click `index.html`.
+3. Select **Open with Live Server**.
 
-## If styles look wrong
-
-Run:
+### Python
 
 ```bash
-npx @tailwindcss/cli -i ./styles.css -o ./tailwind.css
+python3 -m http.server 8000
 ```
 
-Then hard refresh:
-
-- macOS: Cmd + Shift + R
-- Windows: Ctrl + F5 (or Ctrl + Shift + R)
+Then open `http://localhost:8000`.
 
 ## Notes
 
-- `tailwind.css` is generated automatically.
-- `app.js` is intentionally empty right now.
-- Exit code `130` usually means you stopped a command with Ctrl + C.
+- `tailwind.css` is generated from `styles.css`.
+- Scene 2 depends on `models/tape_measure.ksplat` being present.
+- `app.js` contains the viewer, scene-switching, and Gaussian splat loading logic.

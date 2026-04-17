@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const viewerContainer = document.getElementById('splat-viewer');
@@ -22,7 +23,11 @@ let orbitEnabled = false;
 let orbitRadius = 0;
 let orbitCameraY = 0;
 let orbitStartTime = 0;
-let activeSceneConfig = null;
+let activeScene = null;
+let splatViewer = null;
+let sceneLoadToken = 0;
+
+const GAUSSIAN_LOAD_TIMEOUT_MS = 180000;
 
 const DEFAULT_CAMERA_POS = new THREE.Vector3(0, 1.6, 5);
 const DEFAULT_CAMERA_TARGET = new THREE.Vector3(0, 0, 0);
@@ -129,14 +134,14 @@ function setupVRButton() {
   btnEnterVR.addEventListener('click', () => vrButton.click());
 
   renderer.xr.addEventListener('sessionstart', () => {
-    if (!activeSceneConfig) return;
+    if (!activeScene) return;
 
     // Keep VR entry stable and prevent orbit from overriding camera.
     orbitEnabled = false;
     btnToggleOrbit.textContent = 'Auto-Orbit';
     controls.enabled = true;
 
-    applyVRSpawnOffset(activeSceneConfig);
+    applyVRSpawnOffset(activeScene);
   });
 }
 
@@ -144,7 +149,9 @@ function setupVRButton() {
 function clearScene() {
   const toRemove = [];
   scene.traverse((obj) => {
-    if (obj.isMesh || obj.isGroup) toRemove.push(obj);
+    if (obj.isMesh || obj.isGroup || obj.isPoints || obj.isLine) {
+      toRemove.push(obj);
+    }
   });
   toRemove.forEach((obj) => {
     obj.geometry?.dispose();
@@ -157,26 +164,48 @@ function clearScene() {
   });
 }
 
-const loader = new GLTFLoader();
+const gltfLoader = new GLTFLoader();
 
 // Set up DRACO decompression for compressed models (like Littlest Tokyo).
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath(
   'https://www.gstatic.com/draco/versioned/decoders/1.4.3/',
 );
-loader.setDRACOLoader(dracoLoader);
+gltfLoader.setDRACOLoader(dracoLoader);
 
-// Official Three.js example model (Littlest Tokyo - animated city scene)
-const LITTLEST_TOKYO_SCENE = {
-  url: 'https://threejs.org/examples/models/gltf/LittlestTokyo.glb',
-  label: 'Littlest Tokyo (Three.js official animated city)',
-  scale: 0.01,
-  cameraPos: new THREE.Vector3(3.2, 2, 5),
-  cameraLookAt: new THREE.Vector3(0, -0.5, 0),
-  // Tune these with your headset on: this controls VR spawn on entry.
-  vrSpawnPos: new THREE.Vector3(1, -3.05, 0),
-  vrLookAt: new THREE.Vector3(2, -1.7, 0),
+const sceneConfigs = {
+  'scene-1': {
+    url: 'https://threejs.org/examples/models/gltf/LittlestTokyo.glb',
+    label: 'Littlest Tokyo (Three.js official animated city)',
+    scale: 0.01,
+    cameraPos: new THREE.Vector3(3.2, 2, 5),
+    cameraLookAt: new THREE.Vector3(0, -0.5, 0),
+    vrSpawnPos: new THREE.Vector3(1, -3.05, 0),
+    vrLookAt: new THREE.Vector3(2, -1.7, 0),
+  },
+  'scene-2': {
+    url: './models/tape_measure.ksplat',
+    label: 'Tape Measure (.ksplat)',
+    renderMode: 'gaussian',
+    rotation: [1, 0, 0, 0],
+    shDegree: 0,
+    scale: 1,
+    cameraPos: new THREE.Vector3(0, 1.6, 3),
+    cameraLookAt: new THREE.Vector3(0, 0.8, 0),
+    vrSpawnPos: new THREE.Vector3(0, 0, 0),
+    vrLookAt: new THREE.Vector3(0, 0.8, 0),
+  },
 };
+
+function disposeSplatViewer() {
+  if (!splatViewer) return;
+  const viewerToDispose = splatViewer;
+  splatViewer = null;
+  scene.remove(viewerToDispose);
+  viewerToDispose.dispose().catch((error) => {
+    console.warn('Gaussian viewer dispose warning:', error);
+  });
+}
 
 function applyCameraFromConfig(config) {
   const position = config.cameraPos;
@@ -209,21 +238,131 @@ function applyVRSpawnOffset(config) {
   renderer.xr.setReferenceSpace(offsetRefSpace);
 }
 
-function loadScene() {
-  const config = LITTLEST_TOKYO_SCENE;
-  setLoading(true);
+async function loadScene(sceneId = 'scene-1') {
+  const requestId = ++sceneLoadToken;
+  const config = sceneConfigs[sceneId];
+  if (!config) {
+    setSceneLabel('Unknown scene selected.');
+    return;
+  }
 
-  // Stop any running animation from the previous scene.
+  setSceneLabel(`Loading ${config.label}...`);
+  setLoading(true);
+  loadingLabel.textContent = 'Loading scene...';
+
   if (mixer) {
     mixer.stopAllAction();
     mixer = null;
   }
 
+  disposeSplatViewer();
+
   clearScene();
 
-  loader.load(
+  if (config.renderMode === 'gaussian') {
+    scene.fog = null;
+
+    const nextSplatViewer = new GaussianSplats3D.DropInViewer({
+      sharedMemoryForWorkers: false,
+      gpuAcceleratedSort: false,
+      integerBasedSort: false,
+      optimizeSplatData: false,
+      splatSortDistanceMapPrecision: 18,
+      inMemoryCompressionLevel: 0,
+      sphericalHarmonicsDegree: config.shDegree ?? 0,
+    });
+    splatViewer = nextSplatViewer;
+    scene.add(nextSplatViewer);
+
+    let timeoutId = null;
+
+    const clearTimeoutGuard = () => {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    };
+
+    try {
+      const isKSplat = config.url.toLowerCase().endsWith('.ksplat');
+      const splatLoadPromise = nextSplatViewer.addSplatScene(config.url, {
+        format: isKSplat
+          ? GaussianSplats3D.SceneFormat.KSplat
+          : GaussianSplats3D.SceneFormat.Ply,
+        splatAlphaRemovalThreshold: 1,
+        showLoadingUI: false,
+        progressiveLoad: true,
+        rotation: config.rotation || [0, 0, 0, 1],
+      });
+
+      timeoutId = window.setTimeout(() => {
+        if (requestId !== sceneLoadToken || splatViewer !== nextSplatViewer)
+          return;
+        splatLoadPromise.abort?.('Timed out while loading splat scene');
+      }, GAUSSIAN_LOAD_TIMEOUT_MS);
+
+      await splatLoadPromise;
+      if (requestId !== sceneLoadToken || splatViewer !== nextSplatViewer)
+        return;
+
+      clearTimeoutGuard();
+
+      nextSplatViewer.setActiveSphericalHarmonicsDegrees(config.shDegree ?? 0);
+
+      const splatMesh = nextSplatViewer.splatMesh;
+      const splatCount = splatMesh?.getSplatCount?.() ?? 0;
+
+      if (splatCount > 0) {
+        const box = new THREE.Box3();
+        const splatCenter = new THREE.Vector3();
+        for (let i = 0; i < splatCount; i++) {
+          splatMesh.getSplatCenter(i, splatCenter, true);
+          box.expandByPoint(splatCenter);
+        }
+
+        if (!box.isEmpty()) {
+          const centre = new THREE.Vector3();
+          const size = new THREE.Vector3();
+          box.getCenter(centre);
+          box.getSize(size);
+
+          nextSplatViewer.position.sub(centre);
+
+          const radius = Math.max(size.x, size.y, size.z) * 0.5 || 1;
+          const fov = THREE.MathUtils.degToRad(camera.fov);
+          const distance = (radius / Math.tan(fov / 2)) * 1.6;
+
+          controls.target.set(0, 0, 0);
+          camera.position.set(0, Math.max(radius * 0.25, 0.5), distance);
+          camera.near = Math.max(distance / 5000, 0.01);
+          camera.far = Math.max(distance * 100, 20000);
+          camera.updateProjectionMatrix();
+          controls.update();
+        }
+      }
+
+      activeScene = config;
+      setSceneLabel(config.label);
+      setLoading(false);
+    } catch (error) {
+      clearTimeoutGuard();
+      if (requestId === sceneLoadToken && splatViewer === nextSplatViewer) {
+        disposeSplatViewer();
+      }
+      console.error('Gaussian load error:', error);
+      setSceneLabel('Failed to load Tape Measure.ksplat. Check console.');
+      setLoading(false);
+    }
+
+    return;
+  }
+
+  gltfLoader.load(
     config.url,
     (gltf) => {
+      if (requestId !== sceneLoadToken) return;
+      scene.fog = new THREE.Fog(0x1e293b, 20, 60);
+
       const model = gltf.scene;
       model.scale.setScalar(config.scale);
 
@@ -248,8 +387,7 @@ function loadScene() {
         gltf.animations.forEach((clip) => mixer.clipAction(clip).play());
       }
 
-      // Reposition camera for this scene.
-      activeSceneConfig = config;
+      activeScene = config;
       applyCameraFromConfig(config);
 
       setSceneLabel(config.label);
@@ -266,8 +404,8 @@ function loadScene() {
 
 // ── Camera controls ───────────────────────────────────────────────────────────
 function resetCamera() {
-  if (activeSceneConfig) {
-    applyCameraFromConfig(activeSceneConfig);
+  if (activeScene) {
+    applyCameraFromConfig(activeScene);
   } else {
     camera.position.copy(DEFAULT_CAMERA_POS);
     controls.target.copy(DEFAULT_CAMERA_TARGET);
@@ -324,6 +462,7 @@ function animate() {
     } else {
       controls.update();
     }
+
     renderer.render(scene, camera);
   });
 }
@@ -338,7 +477,12 @@ function wireUI() {
   loadSceneButtons.forEach((button) => {
     button.addEventListener('click', () => {
       document.getElementById('viewer').scrollIntoView({ behavior: 'smooth' });
-      loadScene();
+      const sceneId = button.getAttribute('data-scene') || 'scene-1';
+      loadScene(sceneId).catch((error) => {
+        console.error('Scene load error:', error);
+        setSceneLabel('Failed to switch scene. Check console.');
+        setLoading(false);
+      });
     });
   });
 }
@@ -350,7 +494,11 @@ function init() {
   setupVRButton();
   wireUI();
   animate();
-  loadScene();
+  loadScene('scene-1').catch((error) => {
+    console.error('Initial scene load error:', error);
+    setSceneLabel('Failed to load initial scene. Check console.');
+    setLoading(false);
+  });
 }
 
 init();
