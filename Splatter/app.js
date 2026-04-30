@@ -95,12 +95,10 @@ function setupScene() {
 
 // ── VR Button ─────────────────────────────────────────────────────────────────
 function setupVRButton() {
-  // VRButton from Three.js handles the full WebXR session lifecycle.
-  // It auto-detects headset support and shows "Enter VR" / "Exit VR".
+
   const vrButton = VRButton.createButton(renderer);
 
-  // Keep Three.js's VRButton out of the DOM. We only use it as a click
-  // target so the built-in "VR NOT SUPPORTED" UI never appears.
+  // so the built-in "VR NOT SUPPORTED" UI never appears.
   vrButton.style.display = 'none';
 
   // Enable/disable our button based on headset availability.
